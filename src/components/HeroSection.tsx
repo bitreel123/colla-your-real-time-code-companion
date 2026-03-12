@@ -46,21 +46,12 @@ export default function HeroSection() {
         {/* Left: Text */}
         <div className="flex flex-col justify-center lg:w-[45%] py-12">
           <motion.h1
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="text-4xl md:text-5xl lg:text-6xl leading-[1] tracking-tight font-display text-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className="text-4xl md:text-5xl lg:text-6xl leading-[1.1] tracking-tight font-display text-foreground"
           >
-            {headingWords.map((word, i) => (
-              <motion.span
-                key={i}
-                variants={wordVariants}
-                className="inline-block mr-[0.3em]"
-                style={{ transformOrigin: "bottom" }}
-              >
-                {word}
-              </motion.span>
-            ))}
+            The Real-Time AI Search Engine for Developers
           </motion.h1>
 
           <motion.a
