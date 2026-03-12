@@ -1,10 +1,21 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, Mic, Monitor } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useScreenShare } from "@/hooks/useScreenShare";
+import ScreenSharePreview from "@/components/ScreenSharePreview";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
+  const { isSharing, stream, startSharing, stopSharing } = useScreenShare();
+
+  const handleScreenShare = async () => {
+    if (isSharing) {
+      stopSharing();
+    } else {
+      await startSharing();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -12,7 +23,7 @@ export default function SearchPage() {
       <nav className="flex items-center justify-between px-6 md:px-10 py-4">
         <Link
           to="/"
-          className="font-display text-2xl uppercase tracking-tight text-foreground"
+          className="font-display text-2xl uppercase tracking-tight text-foreground hover:text-foreground/70 transition-colors"
         >
           COLLA
         </Link>
@@ -33,7 +44,7 @@ export default function SearchPage() {
       </nav>
 
       {/* Center content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 -mt-20">
+      <div className={`flex-1 flex flex-col items-center px-6 ${isSharing ? "justify-start pt-10" : "justify-center -mt-20"}`}>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -67,12 +78,26 @@ export default function SearchPage() {
               <Mic className="w-4 h-4" />
               Voice
             </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-secondary text-secondary-foreground font-body text-sm font-medium rounded-full hover:bg-secondary/70 transition-colors">
+            <button
+              onClick={handleScreenShare}
+              className={`flex items-center gap-2 px-5 py-2.5 font-body text-sm font-medium rounded-full transition-colors ${
+                isSharing
+                  ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/70"
+              }`}
+            >
               <Monitor className="w-4 h-4" />
-              Share Screen
+              {isSharing ? "Stop Sharing" : "Share Screen"}
             </button>
           </div>
         </motion.div>
+
+        {/* Screen share preview */}
+        <AnimatePresence>
+          {isSharing && stream && (
+            <ScreenSharePreview stream={stream} onStop={stopSharing} />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
