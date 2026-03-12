@@ -16,13 +16,12 @@ const containerVariants = {
 };
 
 const wordVariants = {
-  hidden: { opacity: 0, y: 60, rotateX: -40 },
+  hidden: { opacity: 0, y: 40 },
   visible: {
     opacity: 1,
     y: 0,
-    rotateX: 0,
     transition: {
-      duration: 0.7,
+      duration: 0.6,
       ease: [0.22, 1, 0.36, 1],
     },
   },
@@ -50,8 +49,7 @@ export default function HeroSection() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="text-4xl md:text-5xl lg:text-6xl leading-[1] tracking-tight font-display"
-            style={{ perspective: 400 }}
+            className="text-4xl md:text-5xl lg:text-6xl leading-[1] tracking-tight font-display text-foreground"
           >
             {headingWords.map((word, i) => (
               <motion.span
