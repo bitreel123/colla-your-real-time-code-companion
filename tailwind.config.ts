@@ -13,7 +13,12 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ["Instrument Serif", "serif"],
+        body: ["Space Grotesk", "sans-serif"],
+      },
       colors: {
+        "grid-line": "hsl(var(--grid-line))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
