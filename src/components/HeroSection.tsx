@@ -3,6 +3,31 @@ import { Suspense, lazy } from "react";
 
 const HeroSphere = lazy(() => import("./HeroSphere"));
 
+const headingWords = "The Real-Time AI Search Engine for Developers".split(" ");
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.3,
+    },
+  },
+};
+
+const wordVariants = {
+  hidden: { opacity: 0, y: 60, rotateX: -40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    transition: {
+      duration: 0.7,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
 export default function HeroSection() {
   return (
     <section className="relative min-h-screen grid-lines overflow-hidden">
@@ -22,12 +47,22 @@ export default function HeroSection() {
         {/* Left: Text */}
         <div className="flex flex-col justify-center lg:w-[45%] py-12">
           <motion.h1
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-7xl lg:text-[5.5rem] leading-[0.95] tracking-tight font-display"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="text-4xl md:text-5xl lg:text-6xl leading-[1] tracking-tight font-display"
+            style={{ perspective: 400 }}
           >
-            The Real-Time AI Search Engine for Developers
+            {headingWords.map((word, i) => (
+              <motion.span
+                key={i}
+                variants={wordVariants}
+                className="inline-block mr-[0.3em]"
+                style={{ transformOrigin: "bottom" }}
+              >
+                {word}
+              </motion.span>
+            ))}
           </motion.h1>
 
           <motion.a
