@@ -54,25 +54,6 @@ export default function HeroSection() {
             <HeroSphere />
           </Suspense>
 
-          {/* Overlay card */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-            className="absolute bottom-16 left-4 right-4 md:left-8 md:right-auto md:max-w-md bg-background/90 backdrop-blur-sm p-6 md:p-8 z-20"
-          >
-            <p className="text-foreground/80 text-base md:text-lg leading-relaxed font-body">
-              Search, debug, and understand code instantly. Share your screen, talk to the AI, and solve programming problems in real time.
-            </p>
-            <motion.a
-              href="/search"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="inline-block mt-5 bg-primary text-primary-foreground px-7 py-3 text-sm font-medium tracking-wide font-body"
-            >
-              Learn More
-            </motion.a>
-          </motion.div>
         </div>
       </div>
     </section>
