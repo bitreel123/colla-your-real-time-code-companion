@@ -16,13 +16,12 @@ const containerVariants = {
 };
 
 const wordVariants = {
-  hidden: { opacity: 0, y: 60, rotateX: -40 },
+  hidden: { opacity: 0, y: 40 },
   visible: {
     opacity: 1,
     y: 0,
-    rotateX: 0,
     transition: {
-      duration: 0.7,
+      duration: 0.6,
       ease: [0.22, 1, 0.36, 1],
     },
   },
