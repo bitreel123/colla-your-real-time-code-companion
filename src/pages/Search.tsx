@@ -228,14 +228,16 @@ export default function SearchPage() {
               <ScreenSharePreview stream={stream} onStop={stopSharing} />
               {/* Hidden video element for canvas capture */}
               <video
-                ref={videoRef}
+                ref={(el) => {
+                  (videoRef as any).current = el;
+                  if (el && stream) {
+                    el.srcObject = stream;
+                  }
+                }}
                 autoPlay
                 playsInline
                 muted
                 className="hidden"
-                onLoadedMetadata={(e) => {
-                  (e.target as HTMLVideoElement).play();
-                }}
               />
             </div>
           )}
