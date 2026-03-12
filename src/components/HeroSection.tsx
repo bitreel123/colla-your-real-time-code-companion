@@ -49,8 +49,7 @@ export default function HeroSection() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="text-4xl md:text-5xl lg:text-6xl leading-[1] tracking-tight font-display"
-            style={{ perspective: 400 }}
+            className="text-4xl md:text-5xl lg:text-6xl leading-[1] tracking-tight font-display text-foreground"
           >
             {headingWords.map((word, i) => (
               <motion.span
