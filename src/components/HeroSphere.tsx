@@ -1,21 +1,30 @@
-import { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { MeshDistortMaterial, Float } from "@react-three/drei";
 import * as THREE from "three";
 
 function AnimatedSphere() {
   const meshRef = useRef<THREE.Mesh>(null);
+  const { pointer } = useThree();
 
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.rotation.x = state.clock.elapsedTime * 0.15;
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.2;
+      meshRef.current.rotation.x = THREE.MathUtils.lerp(
+        meshRef.current.rotation.x,
+        pointer.y * 0.5 + state.clock.elapsedTime * 0.1,
+        0.05
+      );
+      meshRef.current.rotation.y = THREE.MathUtils.lerp(
+        meshRef.current.rotation.y,
+        pointer.x * 0.5 + state.clock.elapsedTime * 0.15,
+        0.05
+      );
     }
   });
 
   return (
-    <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.8}>
-      <mesh ref={meshRef} scale={2.4}>
+    <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.5}>
+      <mesh ref={meshRef} scale={1.6}>
         <sphereGeometry args={[1, 128, 128]} />
         <MeshDistortMaterial
           color="#0a0a0a"

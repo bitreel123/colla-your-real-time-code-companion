@@ -6,7 +6,7 @@ const HeroSphere = lazy(() => import("./HeroSphere"));
 export default function HeroSection() {
   return (
     <section className="relative min-h-screen grid-lines overflow-hidden">
-      {/* Vertical grid lines overlay */}
+      {/* Vertical grid lines */}
       <div className="absolute inset-0 pointer-events-none">
         {Array.from({ length: 9 }).map((_, i) => (
           <div
@@ -29,6 +29,23 @@ export default function HeroSection() {
           >
             The Real-Time AI Search Engine for Developers
           </motion.h1>
+
+          <motion.a
+            href="/search"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            className="inline-block mt-8 w-fit bg-primary text-primary-foreground px-10 py-4 text-base font-medium tracking-wide font-body"
+          >
+            <motion.span
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              Start →
+            </motion.span>
+          </motion.a>
         </div>
 
         {/* Right: 3D Sphere + description card */}
@@ -41,18 +58,20 @@ export default function HeroSection() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
             className="absolute bottom-16 left-4 right-4 md:left-8 md:right-auto md:max-w-md bg-background/90 backdrop-blur-sm p-6 md:p-8 z-20"
           >
             <p className="text-foreground/80 text-base md:text-lg leading-relaxed font-body">
               Search, debug, and understand code instantly. Share your screen, talk to the AI, and solve programming problems in real time.
             </p>
-            <a
-              href="#get-started"
-              className="inline-block mt-5 bg-accent text-accent-foreground px-7 py-3 text-sm font-medium tracking-wide hover:opacity-90 transition-opacity"
+            <motion.a
+              href="/search"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-block mt-5 bg-primary text-primary-foreground px-7 py-3 text-sm font-medium tracking-wide font-body"
             >
               Learn More
-            </a>
+            </motion.a>
           </motion.div>
         </div>
       </div>
