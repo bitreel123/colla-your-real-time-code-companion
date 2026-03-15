@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase-safe";
 
 export type AnalysisMode = "voice" | "vision" | "correction" | "assistant" | "debug";
 
