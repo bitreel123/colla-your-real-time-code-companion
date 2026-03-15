@@ -27,7 +27,7 @@ export default function SearchPage() {
   const { isListening, transcript, hasPermission, startListening, stopListening, clearTranscript } =
     useVoiceInput({
       onTranscriptUpdate: handleVoiceTranscriptUpdate,
-      debounceMs: 3000,
+      debounceMs: 2000,
     });
 
   // Set up video element when stream changes
