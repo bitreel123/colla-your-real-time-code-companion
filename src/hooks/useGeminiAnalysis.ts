@@ -30,6 +30,8 @@ export function useGeminiAnalysis() {
     async (mode: AnalysisMode, query: string, imageBase64?: string) => {
       setLoading((prev) => ({ ...prev, [mode]: true }));
       try {
+        if (!supabase) throw new Error("Backend not available");
+
         const { data, error } = await supabase.functions.invoke("gemini-analyze", {
           body: {
             mode,
