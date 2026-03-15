@@ -71,6 +71,7 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
         finalTranscript += event.results[i][0].transcript;
       }
       setTranscript(finalTranscript);
+      recognition._lastTranscript = finalTranscript;
     };
 
     recognition.onerror = (event: any) => {
