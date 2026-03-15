@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+import type { User, Session, SupabaseClient } from "@supabase/supabase-js";
 
 interface AuthContextType {
   user: User | null;
@@ -13,29 +12,58 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const hasSupabaseConfig = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+);
+
+let supabaseClient: SupabaseClient | null = null;
+
+async function getClient(): Promise<SupabaseClient | null> {
+  if (!hasSupabaseConfig) return null;
+  if (supabaseClient) return supabaseClient;
+  try {
+    const { supabase } = await import("@/integrations/supabase/client");
+    supabaseClient = supabase;
+    return supabase;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(hasSupabaseConfig);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    if (!hasSupabaseConfig) return;
+
+    let sub: { unsubscribe: () => void } | null = null;
+
+    getClient().then((client) => {
+      if (!client) { setLoading(false); return; }
+
+      const { data: { subscription } } = client.auth.onAuthStateChange((_event, sess) => {
+        setSession(sess);
+        setUser(sess?.user ?? null);
+        setLoading(false);
+      });
+      sub = subscription;
+
+      client.auth.getSession().then(({ data: { session: sess } }) => {
+        setSession(sess);
+        setUser(sess?.user ?? null);
+        setLoading(false);
+      });
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => sub?.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const client = await getClient();
+    if (!client) return { error: new Error("Backend not configured") };
+    const { error } = await client.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: window.location.origin },
@@ -44,12 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const client = await getClient();
+    if (!client) return { error: new Error("Backend not configured") };
+    const { error } = await client.auth.signInWithPassword({ email, password });
     return { error: error as Error | null };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const client = await getClient();
+    if (client) await client.auth.signOut();
   };
 
   return (
