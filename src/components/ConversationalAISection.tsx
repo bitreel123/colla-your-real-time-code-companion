@@ -97,7 +97,7 @@ export default function ConversationalAISection() {
             >
               Build with an AI
               <br />
-              that <span className="italic text-accent">understands</span>
+              that <span className="italic text-foreground">understands</span>
               <br />
               your workflow
             </motion.h2>

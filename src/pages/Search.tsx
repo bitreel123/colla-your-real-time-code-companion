@@ -161,7 +161,7 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
       {/* Hidden video for capture - managed via useEffect */}
       <video ref={videoRef} autoPlay playsInline muted className="hidden" />
 
-      <nav className="flex items-center justify-between px-6 md:px-10 py-4">
+      <nav className="relative z-20 flex items-center justify-between px-6 md:px-10 py-4">
         <Link
           to="/"
           className="font-display text-2xl uppercase tracking-tight text-foreground hover:text-foreground/70 transition-colors"

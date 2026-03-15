@@ -41,7 +41,7 @@ export default function ProductShowcase() {
         >
           See your code through
           <br />
-          <span className="italic text-accent">AI-powered</span> eyes
+          <span className="italic text-background">AI-powered</span> eyes
         </motion.h2>
 
         <motion.p
