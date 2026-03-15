@@ -25,7 +25,7 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
         lastSentRef.current = transcript;
         options.onTranscriptUpdate!(transcript);
       }
-    }, options?.debounceMs ?? 3000);
+    }, options?.debounceMs ?? 2000);
 
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -71,6 +71,7 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
         finalTranscript += event.results[i][0].transcript;
       }
       setTranscript(finalTranscript);
+      recognition._lastTranscript = finalTranscript;
     };
 
     recognition.onerror = (event: any) => {
@@ -80,6 +81,14 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
 
     recognition.onend = () => {
       setIsListening(false);
+      // Send final transcript immediately on end
+      if (options?.onTranscriptUpdate) {
+        const currentTranscript = recognitionRef.current?._lastTranscript;
+        if (currentTranscript && currentTranscript !== lastSentRef.current) {
+          lastSentRef.current = currentTranscript;
+          options.onTranscriptUpdate(currentTranscript);
+        }
+      }
     };
 
     recognitionRef.current = recognition;
