@@ -31,7 +31,7 @@ export default function Login() {
         <Link to="/" className="font-display text-2xl uppercase tracking-tight text-foreground hover:text-foreground/70 transition-colors">
           COLLA
         </Link>
-        <Link to="/" className="text-xs font-body font-medium text-muted-foreground hover:text-foreground transition-colors">
+        <Link to="/search" className="text-xs font-body font-medium text-muted-foreground hover:text-foreground transition-colors">
           ← Back
         </Link>
       </nav>
