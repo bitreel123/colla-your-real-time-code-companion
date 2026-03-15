@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ReactNode } from "react";
 
 interface AnalysisCardProps {
@@ -38,8 +40,15 @@ export default function AnalysisCard({
       <div className="p-4 flex-1 overflow-auto max-h-80">
         {children}
         {result && (
-          <div className="font-body text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed break-words">
-            {result}
+          <div className="prose prose-sm max-w-none font-body text-foreground/90
+            prose-headings:font-body prose-headings:text-foreground prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1
+            prose-p:text-sm prose-p:leading-relaxed prose-p:my-1
+            prose-code:text-xs prose-code:bg-secondary prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-foreground
+            prose-pre:bg-secondary prose-pre:rounded-md prose-pre:p-3 prose-pre:overflow-x-auto prose-pre:text-xs
+            prose-li:text-sm prose-li:my-0.5
+            prose-strong:text-foreground
+          ">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
           </div>
         )}
         {!result && !loading && (

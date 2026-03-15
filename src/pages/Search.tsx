@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Mic, MicOff, Monitor, Code, Bug, Wand2, Send } from "lucide-react";
+import { Search, Mic, MicOff, Monitor, Code, Bug, Wand2, Send, LogOut, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useScreenShare } from "@/hooks/useScreenShare";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useGeminiAnalysis } from "@/hooks/useGeminiAnalysis";
@@ -9,6 +10,7 @@ import ScreenSharePreview from "@/components/ScreenSharePreview";
 import AnalysisCard from "@/components/AnalysisCard";
 
 export default function SearchPage() {
+  const { user, signOut } = useAuth();
   const [query, setQuery] = useState("");
   const { isSharing, stream, startSharing, stopSharing } = useScreenShare();
   const { results, loading, analyze } = useGeminiAnalysis();
@@ -168,17 +170,16 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
         </Link>
         <div className="flex items-center gap-3">
           <Link
-            to="/login"
-            className="px-5 py-2 text-sm font-body font-medium text-foreground hover:text-foreground/70 transition-colors"
+            to="/live"
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-body font-medium bg-accent text-accent-foreground hover:bg-accent/80 rounded-md transition-colors"
           >
-            Log in
+            <Zap className="w-3.5 h-3.5" />
+            Live
           </Link>
-          <Link
-            to="/signup"
-            className="px-5 py-2 text-sm font-body font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Sign up
-          </Link>
+          <span className="text-xs font-body text-muted-foreground hidden sm:block">{user?.email}</span>
+          <button onClick={signOut} className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </nav>
 
