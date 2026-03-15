@@ -25,7 +25,7 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
         lastSentRef.current = transcript;
         options.onTranscriptUpdate!(transcript);
       }
-    }, options?.debounceMs ?? 3000);
+    }, options?.debounceMs ?? 2000);
 
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
