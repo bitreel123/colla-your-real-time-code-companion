@@ -55,84 +55,100 @@ serve(async (req) => {
   try {
     const { mode, messages, imageBase64 } = await req.json();
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     const systemPrompt = SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.assistant;
 
-    // Build parts for Gemini API
-    const contents: any[] = [];
-
-    // Add system instruction as first user turn
-    contents.push({
-      role: "user",
-      parts: [{ text: `System: ${systemPrompt}` }],
-    });
-    contents.push({
-      role: "model",
-      parts: [{ text: "Understood. I'll analyze according to these instructions." }],
-    });
+    // Build messages for OpenAI-compatible API
+    const apiMessages: any[] = [
+      { role: "system", content: systemPrompt },
+    ];
 
     // Add conversation messages
     for (const msg of messages) {
-      const parts: any[] = [];
-      if (msg.content) {
-        parts.push({ text: msg.content });
-      }
       if (msg.imageBase64) {
-        parts.push({
-          inline_data: {
-            mime_type: "image/png",
-            data: msg.imageBase64,
-          },
+        // Vision message with image
+        apiMessages.push({
+          role: msg.role === "assistant" ? "assistant" : "user",
+          content: [
+            { type: "text", text: msg.content || "Analyze this image" },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/png;base64,${msg.imageBase64}`,
+              },
+            },
+          ],
         });
-      }
-      contents.push({
-        role: msg.role === "assistant" ? "model" : "user",
-        parts,
-      });
-    }
-
-    // If there's a standalone image (from screen share)
-    if (imageBase64 && contents.length > 2) {
-      const lastContent = contents[contents.length - 1];
-      if (lastContent.role === "user") {
-        lastContent.parts.push({
-          inline_data: {
-            mime_type: "image/png",
-            data: imageBase64,
-          },
+      } else {
+        apiMessages.push({
+          role: msg.role === "assistant" ? "assistant" : "user",
+          content: msg.content,
         });
       }
     }
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    // If there's a standalone imageBase64, attach it to the last user message
+    if (imageBase64) {
+      const lastUserIdx = apiMessages.map((m, i) => m.role === "user" ? i : -1).filter(i => i >= 0).pop();
+      if (lastUserIdx !== undefined && lastUserIdx >= 0) {
+        const lastMsg = apiMessages[lastUserIdx];
+        const textContent = typeof lastMsg.content === "string" ? lastMsg.content : (lastMsg.content?.[0]?.text || "Analyze this image");
+        apiMessages[lastUserIdx] = {
+          role: "user",
+          content: [
+            { type: "text", text: textContent },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:image/png;base64,${imageBase64}`,
+              },
+            },
+          ],
+        };
+      }
+    }
 
-    const response = await fetch(geminiUrl, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 4096,
-        },
+        model: "google/gemini-2.5-flash",
+        messages: apiMessages,
+        temperature: 0.7,
+        max_tokens: 4096,
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI usage limit reached. Please add credits to continue." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const errText = await response.text();
-      console.error("Gemini API error:", response.status, errText);
+      console.error("AI gateway error:", response.status, errText);
       return new Response(
-        JSON.stringify({ error: `Gemini API error: ${response.status}` }),
+        JSON.stringify({ error: `AI gateway error: ${response.status}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+    const text = data.choices?.[0]?.message?.content || "No response generated.";
 
     return new Response(JSON.stringify({ result: text }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
