@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Monitor, Play, Square, Trash2, LogOut, Zap, Loader2, Mic, MicOff, Send, MessageSquare, BarChart3, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useScreenShare } from "@/hooks/useScreenShare";
