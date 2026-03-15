@@ -11,19 +11,61 @@ import AnalysisCard from "@/components/AnalysisCard";
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const { isSharing, stream, startSharing, stopSharing } = useScreenShare();
-  const { isListening, transcript, startListening, stopListening, clearTranscript } = useVoiceInput();
   const { results, loading, analyze } = useGeminiAnalysis();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [readyToCapture, setReadyToCapture] = useState(false);
+
+  // Voice input with debounced real-time analysis
+  const handleVoiceTranscriptUpdate = useCallback(
+    (transcript: string) => {
+      analyze("voice", `Voice transcript analysis (real-time): ${transcript}`);
+    },
+    [analyze]
+  );
+
+  const { isListening, transcript, hasPermission, startListening, stopListening, clearTranscript } =
+    useVoiceInput({
+      onTranscriptUpdate: handleVoiceTranscriptUpdate,
+      debounceMs: 3000,
+    });
+
+  // Set up video element when stream changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !stream) {
+      setReadyToCapture(false);
+      return;
+    }
+
+    video.srcObject = stream;
+
+    const handleLoaded = () => {
+      setReadyToCapture(true);
+    };
+
+    video.addEventListener("loadedmetadata", handleLoaded);
+    video.play().catch(() => {});
+
+    return () => {
+      video.removeEventListener("loadedmetadata", handleLoaded);
+    };
+  }, [stream]);
+
+  // Reset readyToCapture when sharing stops
+  useEffect(() => {
+    if (!isSharing) setReadyToCapture(false);
+  }, [isSharing]);
 
   const captureScreenFrame = (): string | null => {
-    if (!stream) return null;
+    if (!stream || !readyToCapture) return null;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return null;
+    if (!video.videoWidth || !video.videoHeight) return null;
 
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
     ctx.drawImage(video, 0, 0);
@@ -32,37 +74,20 @@ export default function SearchPage() {
 
   const handleSubmitAll = async () => {
     const text = query || transcript || "Analyze my code";
-
-    // Run all analyses in parallel with different prompts
     const promises: Promise<any>[] = [];
 
-    // Assistant - general question
     promises.push(analyze("assistant", text));
+    promises.push(analyze("correction", `Please review and correct the following code or query: ${text}`));
+    promises.push(analyze("debug", `Debug and find issues in the following: ${text}`));
 
-    // Code correction
-    promises.push(
-      analyze("correction", `Please review and correct the following code or query: ${text}`)
-    );
-
-    // Debug
-    promises.push(
-      analyze("debug", `Debug and find issues in the following: ${text}`)
-    );
-
-    // Voice analysis (if transcript exists)
     if (transcript) {
-      promises.push(
-        analyze("voice", `Voice transcript analysis: ${transcript}`)
-      );
+      promises.push(analyze("voice", `Voice transcript analysis: ${transcript}`));
     }
 
-    // Vision analysis (if screen is being shared)
-    if (isSharing && stream) {
+    if (isSharing && stream && readyToCapture) {
       const frame = captureScreenFrame();
       if (frame) {
-        promises.push(
-          analyze("vision", `Analyze this screen share showing code. ${text}`, frame)
-        );
+        promises.push(analyze("vision", `Analyze this screen share showing code. ${text}`, frame));
       }
     }
 
@@ -72,7 +97,6 @@ export default function SearchPage() {
   const handleVoiceToggle = () => {
     if (isListening) {
       stopListening();
-      // Auto-analyze voice transcript
       if (transcript) {
         analyze("voice", `Voice transcript analysis: ${transcript}`);
       }
@@ -94,7 +118,7 @@ export default function SearchPage() {
   const autoAnalyzeRef = useRef(false);
 
   const handleScreenAnalyze = useCallback(() => {
-    if (isSharing && stream) {
+    if (isSharing && stream && readyToCapture) {
       const frame = captureScreenFrame();
       if (frame) {
         analyze(
@@ -111,31 +135,30 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
         );
       }
     }
-  }, [isSharing, stream, query, analyze]);
+  }, [isSharing, stream, readyToCapture, query, analyze]);
 
-  // Auto-analyze every 8 seconds when enabled
   useEffect(() => {
     autoAnalyzeRef.current = autoAnalyze;
   }, [autoAnalyze]);
 
   useEffect(() => {
-    if (!autoAnalyze || !isSharing || !stream) return;
-    handleScreenAnalyze(); // immediate first capture
+    if (!autoAnalyze || !isSharing || !stream || !readyToCapture) return;
+    handleScreenAnalyze();
     const interval = setInterval(() => {
       if (autoAnalyzeRef.current) handleScreenAnalyze();
     }, 8000);
     return () => clearInterval(interval);
-  }, [autoAnalyze, isSharing, stream, handleScreenAnalyze]);
+  }, [autoAnalyze, isSharing, stream, readyToCapture, handleScreenAnalyze]);
 
   const hasAnyResults =
     results.voice || results.vision || results.correction || results.assistant || results.debug;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Hidden canvas for screen capture */}
       <canvas ref={canvasRef} className="hidden" />
+      {/* Hidden video for capture - managed via useEffect */}
+      <video ref={videoRef} autoPlay playsInline muted className="hidden" />
 
-      {/* Top nav bar */}
       <nav className="flex items-center justify-between px-6 md:px-10 py-4">
         <Link
           to="/"
@@ -159,7 +182,6 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
         </div>
       </nav>
 
-      {/* Center content */}
       <div className={`flex-1 flex flex-col items-center px-6 ${hasAnyResults || isSharing ? "pt-6" : "justify-center -mt-20"}`}>
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -170,7 +192,6 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
           COLLA
         </motion.h1>
 
-        {/* Search bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -196,6 +217,13 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
             </button>
           </div>
 
+          {/* Mic permission warning */}
+          {hasPermission === false && (
+            <p className="text-xs text-destructive font-body mt-2 text-center">
+              Microphone access denied. Please allow microphone in your browser settings.
+            </p>
+          )}
+
           {/* Voice transcript display */}
           {isListening && (
             <motion.div
@@ -205,7 +233,7 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
             >
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                <span className="text-xs font-body font-medium text-muted-foreground">Listening...</span>
+                <span className="text-xs font-body font-medium text-muted-foreground">Listening... (analyzing every 3s)</span>
               </div>
               <p className="text-sm font-body text-foreground">
                 {transcript || "Start speaking..."}
@@ -241,11 +269,11 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
               <>
                 <button
                   onClick={handleScreenAnalyze}
-                  disabled={loading.vision}
+                  disabled={loading.vision || !readyToCapture}
                   className="flex items-center gap-2 px-5 py-2.5 font-body text-sm font-medium rounded-full bg-accent text-accent-foreground hover:bg-accent/80 transition-colors disabled:opacity-50"
                 >
                   <Wand2 className="w-4 h-4" />
-                  {loading.vision ? "Analyzing..." : "Analyze Screen"}
+                  {loading.vision ? "Analyzing..." : !readyToCapture ? "Preparing..." : "Analyze Screen"}
                 </button>
                 <button
                   onClick={() => setAutoAnalyze((v) => !v)}
@@ -267,19 +295,6 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
           {isSharing && stream && (
             <div className="w-full max-w-4xl mt-6">
               <ScreenSharePreview stream={stream} onStop={stopSharing} />
-              {/* Hidden video element for canvas capture */}
-              <video
-                ref={(el) => {
-                  (videoRef as any).current = el;
-                  if (el && stream) {
-                    el.srcObject = stream;
-                  }
-                }}
-                autoPlay
-                playsInline
-                muted
-                className="hidden"
-              />
             </div>
           )}
         </AnimatePresence>
@@ -293,7 +308,6 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
               exit={{ opacity: 0, y: 20 }}
               className="w-full max-w-6xl mt-8 mb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             >
-              {/* Code Assistant Card */}
               <AnalysisCard
                 title="Code Assistant"
                 icon={<Code className="w-4 h-4 text-foreground" />}
@@ -301,8 +315,6 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
                 loading={loading.assistant}
                 accentColor="hsl(var(--secondary))"
               />
-
-              {/* Voice Analysis Card */}
               <AnalysisCard
                 title="Voice Analysis"
                 icon={<Mic className="w-4 h-4 text-foreground" />}
@@ -316,8 +328,6 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
                   </p>
                 )}
               </AnalysisCard>
-
-              {/* Screen Share Analysis Card */}
               <AnalysisCard
                 title="Screen Share Analysis"
                 icon={<Monitor className="w-4 h-4 text-foreground" />}
@@ -327,12 +337,12 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
               >
                 {isSharing && !results.vision && (
                   <p className="text-xs text-muted-foreground font-body">
-                    Screen sharing active. Click "Analyze Screen" to capture.
+                    {readyToCapture
+                      ? 'Screen sharing active. Click "Analyze Screen" to capture.'
+                      : "Preparing screen capture..."}
                   </p>
                 )}
               </AnalysisCard>
-
-              {/* Code Correction Card */}
               <AnalysisCard
                 title="Code Correction"
                 icon={<Wand2 className="w-4 h-4 text-foreground" />}
@@ -340,8 +350,6 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
                 loading={loading.correction}
                 accentColor="hsl(40 80% 55% / 0.15)"
               />
-
-              {/* Debug Card */}
               <AnalysisCard
                 title="Real-time Debugger"
                 icon={<Bug className="w-4 h-4 text-foreground" />}
