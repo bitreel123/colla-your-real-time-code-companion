@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase-safe";
+import { getSupabaseClient } from "@/lib/supabase-safe";
 
 export type AnalysisMode = "voice" | "vision" | "correction" | "assistant" | "debug";
 
@@ -30,9 +30,10 @@ export function useGeminiAnalysis() {
     async (mode: AnalysisMode, query: string, imageBase64?: string) => {
       setLoading((prev) => ({ ...prev, [mode]: true }));
       try {
-        if (!supabase) throw new Error("Backend not available");
+        const client = await getSupabaseClient();
+        if (!client) throw new Error("Backend not available");
 
-        const { data, error } = await supabase.functions.invoke("gemini-analyze", {
+        const { data, error } = await client.functions.invoke("gemini-analyze", {
           body: {
             mode,
             messages: [{ role: "user", content: query }],
