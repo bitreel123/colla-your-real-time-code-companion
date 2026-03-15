@@ -238,13 +238,26 @@ ${query ? `User's additional context: ${query}` : "Analyze everything you see."}
               {isSharing ? "Stop Sharing" : "Share Screen"}
             </button>
             {isSharing && (
-              <button
-                onClick={handleScreenAnalyze}
-                className="flex items-center gap-2 px-5 py-2.5 font-body text-sm font-medium rounded-full bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
-              >
-                <Wand2 className="w-4 h-4" />
-                Analyze Screen
-              </button>
+              <>
+                <button
+                  onClick={handleScreenAnalyze}
+                  disabled={loading.vision}
+                  className="flex items-center gap-2 px-5 py-2.5 font-body text-sm font-medium rounded-full bg-accent text-accent-foreground hover:bg-accent/80 transition-colors disabled:opacity-50"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  {loading.vision ? "Analyzing..." : "Analyze Screen"}
+                </button>
+                <button
+                  onClick={() => setAutoAnalyze((v) => !v)}
+                  className={`flex items-center gap-2 px-5 py-2.5 font-body text-sm font-medium rounded-full transition-colors ${
+                    autoAnalyze
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/70"
+                  }`}
+                >
+                  {autoAnalyze ? "⏸ Stop Auto" : "▶ Auto Analyze"}
+                </button>
+              </>
             )}
           </div>
         </motion.div>
