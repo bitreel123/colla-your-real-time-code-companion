@@ -30,7 +30,7 @@ export function useGeminiAnalysis() {
     async (mode: AnalysisMode, query: string, imageBase64?: string) => {
       setLoading((prev) => ({ ...prev, [mode]: true }));
       try {
-        const client = await getSupabaseClient();
+        const client = getSupabaseClient();
         if (!client) throw new Error("Backend not available");
 
         const { data, error } = await client.functions.invoke("gemini-analyze", {
