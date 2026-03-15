@@ -1,13 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Monitor, Play, Square, Trash2, LogOut, Zap, Loader2, Mic, MicOff, Send } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Monitor, Play, Square, Trash2, LogOut, Zap, Loader2, Mic, MicOff, Send, MessageSquare, BarChart3, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useScreenShare } from "@/hooks/useScreenShare";
 import { useLiveAnalysis } from "@/hooks/useLiveAnalysis";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useGeminiAnalysis } from "@/hooks/useGeminiAnalysis";
 import LiveAnalysisFeed from "@/components/LiveAnalysisFeed";
+import GeminiChat from "@/components/GeminiChat";
+import { getSupabaseClient } from "@/lib/supabase-safe";
+import { toast } from "@/hooks/use-toast";
+
+type RightPanel = "analysis" | "chat";
 
 export default function LiveAnalysis() {
   const { user, signOut } = useAuth();
@@ -18,11 +25,13 @@ export default function LiveAnalysis() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [readyToCapture, setReadyToCapture] = useState(false);
   const [voiceQuery, setVoiceQuery] = useState("");
+  const [rightPanel, setRightPanel] = useState<RightPanel>("analysis");
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
 
   // Voice input with live analysis integration
   const handleVoiceTranscript = useCallback(
     (transcript: string) => {
-      // When voice input comes in during screen share, analyze with vision + voice context
       if (isSharing && readyToCapture) {
         const canvas = canvasRef.current;
         const video = videoRef.current;
@@ -113,6 +122,37 @@ export default function LiveAnalysis() {
       analyze("assistant", voiceQuery);
     }
     setVoiceQuery("");
+  };
+
+  // Smart Summary - Gemini summarizes all analysis entries
+  const handleGenerateSummary = async () => {
+    if (entries.length === 0) {
+      toast({ title: "No entries", description: "Run some analysis first before generating a summary." });
+      return;
+    }
+    setSummaryLoading(true);
+    try {
+      const client = await getSupabaseClient();
+      if (!client) throw new Error("Backend not available");
+
+      const combinedEntries = entries
+        .map((e, i) => `--- Entry ${i + 1} (${e.timestamp.toLocaleTimeString()}) ---\n${e.result}`)
+        .join("\n\n");
+
+      const { data, error } = await client.functions.invoke("gemini-analyze", {
+        body: {
+          mode: "summary",
+          messages: [{ role: "user", content: `Summarize this live coding session analysis:\n\n${combinedEntries}` }],
+        },
+      });
+
+      if (error) throw error;
+      setSummary(data.result || "No summary generated");
+    } catch (err) {
+      toast({ title: "Summary failed", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setSummaryLoading(false);
+    }
   };
 
   return (
@@ -209,9 +249,8 @@ export default function LiveAnalysis() {
             )}
           </div>
 
-          {/* Voice + Text input bar at bottom of left panel */}
+          {/* Voice + Text input bar */}
           <div className="px-4 py-3 border-t border-border bg-card shrink-0">
-            {/* Voice transcript */}
             {isListening && (
               <div className="mb-2 px-3 py-2 bg-secondary/50 rounded-md">
                 <div className="flex items-center gap-2 mb-1">
@@ -254,31 +293,92 @@ export default function LiveAnalysis() {
           </div>
         </div>
 
-        {/* Right: Analysis feed */}
+        {/* Right: Analysis feed / Chat / Summary */}
         <div className="md:w-1/2 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-card shrink-0">
+          {/* Tab bar */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setRightPanel("analysis")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-body font-medium rounded-md transition-colors ${
+                  rightPanel === "analysis" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Analysis
+                {analyzing && <Loader2 className="w-3 h-3 animate-spin text-accent" />}
+                {running && (
+                  <span className="text-[9px] font-medium text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">
+                    LIVE
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setRightPanel("chat")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-body font-medium rounded-md transition-colors ${
+                  rightPanel === "chat" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Chat
+              </button>
+            </div>
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-accent" />
-              <span className="text-sm font-body font-medium text-foreground">Live Analysis</span>
-              {analyzing && <Loader2 className="w-3.5 h-3.5 animate-spin text-accent ml-1" />}
-              {running && (
-                <span className="ml-2 text-[10px] font-body font-medium text-accent bg-accent/10 px-2 py-0.5 rounded-full">
-                  LIVE
-                </span>
+              {entries.length > 0 && rightPanel === "analysis" && (
+                <>
+                  <button
+                    onClick={handleGenerateSummary}
+                    disabled={summaryLoading}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-body text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
+                  >
+                    {summaryLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                    Summary
+                  </button>
+                  <button
+                    onClick={() => { clear(); setSummary(null); }}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-body text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Clear
+                  </button>
+                </>
               )}
             </div>
-            {entries.length > 0 && (
-              <button
-                onClick={clear}
-                className="flex items-center gap-1 px-2 py-1 text-xs font-body text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Trash2 className="w-3 h-3" />
-                Clear
-              </button>
-            )}
           </div>
 
-          <LiveAnalysisFeed entries={entries} />
+          {/* Panel content */}
+          {rightPanel === "analysis" ? (
+            summary ? (
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-body text-sm font-semibold text-foreground flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-accent" />
+                    Session Summary
+                  </h3>
+                  <button
+                    onClick={() => setSummary(null)}
+                    className="text-xs font-body text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Back to feed
+                  </button>
+                </div>
+                <div className="rounded-lg border border-border bg-card p-4 prose prose-sm max-w-none font-body text-foreground/90
+                  prose-headings:font-body prose-headings:text-foreground prose-headings:text-sm prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1
+                  prose-p:text-sm prose-p:leading-relaxed prose-p:my-1
+                  prose-code:text-xs prose-code:bg-secondary prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-foreground
+                  prose-pre:bg-secondary prose-pre:rounded-md prose-pre:p-3 prose-pre:overflow-x-auto prose-pre:text-xs
+                  prose-li:text-sm prose-li:my-0.5
+                  prose-strong:text-foreground
+                ">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+                </div>
+              </div>
+            ) : (
+              <LiveAnalysisFeed entries={entries} />
+            )
+          ) : (
+            <GeminiChat captureFrame={captureFrame} isSharing={isSharing && readyToCapture} />
+          )}
         </div>
       </div>
     </div>
