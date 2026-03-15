@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Mic, MicOff, Monitor, Code, Bug, Wand2, Send } from "lucide-react";
+import { Search, Mic, MicOff, Monitor, Code, Bug, Wand2, Send, LogOut, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useScreenShare } from "@/hooks/useScreenShare";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { useGeminiAnalysis } from "@/hooks/useGeminiAnalysis";
