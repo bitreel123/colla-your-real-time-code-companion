@@ -1,13 +1,10 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
-let safeClient: SupabaseClient | null = null;
-
-try {
-  // Static import - no top-level await needed
-  const { supabase } = require("@/integrations/supabase/client");
-  safeClient = supabase;
-} catch (e) {
-  console.warn("Supabase client failed to initialize:", e);
+export function getSupabaseClient() {
+  try {
+    if (!supabase) return null;
+    return supabase;
+  } catch {
+    return null;
+  }
 }
-
-export { safeClient as supabase };
