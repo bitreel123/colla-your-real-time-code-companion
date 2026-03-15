@@ -1,19 +1,50 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Monitor, Play, Square, Trash2, LogOut, Zap, Loader2 } from "lucide-react";
+import { Monitor, Play, Square, Trash2, LogOut, Zap, Loader2, Mic, MicOff, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useScreenShare } from "@/hooks/useScreenShare";
 import { useLiveAnalysis } from "@/hooks/useLiveAnalysis";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { useGeminiAnalysis } from "@/hooks/useGeminiAnalysis";
 import LiveAnalysisFeed from "@/components/LiveAnalysisFeed";
 
 export default function LiveAnalysis() {
   const { user, signOut } = useAuth();
   const { isSharing, stream, startSharing, stopSharing } = useScreenShare();
   const { entries, analyzing, running, start, stop, clear, setCaptureFunction } = useLiveAnalysis();
+  const { analyze } = useGeminiAnalysis();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [readyToCapture, setReadyToCapture] = useState(false);
+  const [voiceQuery, setVoiceQuery] = useState("");
+
+  // Voice input with live analysis integration
+  const handleVoiceTranscript = useCallback(
+    (transcript: string) => {
+      // When voice input comes in during screen share, analyze with vision + voice context
+      if (isSharing && readyToCapture) {
+        const canvas = canvasRef.current;
+        const video = videoRef.current;
+        if (canvas && video && video.videoWidth && video.videoHeight) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(video, 0, 0);
+            const frame = canvas.toDataURL("image/png").split(",")[1];
+            analyze("vision", `Developer voice query while sharing screen: "${transcript}". Analyze the screen and answer their question.`, frame);
+          }
+        }
+      } else {
+        analyze("voice", `Voice query: ${transcript}`);
+      }
+    },
+    [isSharing, readyToCapture, analyze]
+  );
+
+  const { isListening, transcript, hasPermission, startListening, stopListening, clearTranscript } =
+    useVoiceInput({ onTranscriptUpdate: handleVoiceTranscript, debounceMs: 2000 });
 
   // Set up video when stream changes
   useEffect(() => {
@@ -60,6 +91,28 @@ export default function LiveAnalysis() {
     } else {
       start(7000);
     }
+  };
+
+  const handleVoiceToggle = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      clearTranscript();
+      startListening();
+    }
+  };
+
+  const handleTextSubmit = () => {
+    if (!voiceQuery.trim()) return;
+    if (isSharing && readyToCapture) {
+      const frame = captureFrame();
+      if (frame) {
+        analyze("vision", `Developer question: "${voiceQuery}". Analyze the screen and answer.`, frame);
+      }
+    } else {
+      analyze("assistant", voiceQuery);
+    }
+    setVoiceQuery("");
   };
 
   return (
@@ -154,6 +207,50 @@ export default function LiveAnalysis() {
                 <p className="font-body text-sm text-muted-foreground">Share your screen to begin live analysis</p>
               </div>
             )}
+          </div>
+
+          {/* Voice + Text input bar at bottom of left panel */}
+          <div className="px-4 py-3 border-t border-border bg-card shrink-0">
+            {/* Voice transcript */}
+            {isListening && (
+              <div className="mb-2 px-3 py-2 bg-secondary/50 rounded-md">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                  <span className="text-[10px] font-body font-medium text-muted-foreground">Listening...</span>
+                </div>
+                <p className="text-xs font-body text-foreground">{transcript || "Start speaking..."}</p>
+              </div>
+            )}
+            {hasPermission === false && (
+              <p className="text-[10px] text-destructive font-body mb-2">Mic access denied. Enable in browser settings.</p>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleVoiceToggle}
+                className={`p-2 rounded-md transition-colors shrink-0 ${
+                  isListening
+                    ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/70"
+                }`}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+              <input
+                type="text"
+                value={voiceQuery}
+                onChange={(e) => setVoiceQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
+                placeholder="Ask about the code on screen..."
+                className="flex-1 px-3 py-2 rounded-md border border-input bg-background text-foreground font-body text-xs outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
+              />
+              <button
+                onClick={handleTextSubmit}
+                disabled={!voiceQuery.trim()}
+                className="p-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 shrink-0"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 

@@ -27,9 +27,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <nav className="flex items-center px-6 md:px-10 py-4">
+      <nav className="flex items-center justify-between px-6 md:px-10 py-4">
         <Link to="/" className="font-display text-2xl uppercase tracking-tight text-foreground hover:text-foreground/70 transition-colors">
           COLLA
+        </Link>
+        <Link to="/search" className="text-xs font-body font-medium text-muted-foreground hover:text-foreground transition-colors">
+          ← Back to Search
         </Link>
       </nav>
 
