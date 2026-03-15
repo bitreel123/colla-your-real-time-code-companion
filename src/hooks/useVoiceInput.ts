@@ -80,6 +80,14 @@ export function useVoiceInput(options?: UseVoiceInputOptions) {
 
     recognition.onend = () => {
       setIsListening(false);
+      // Send final transcript immediately on end
+      if (options?.onTranscriptUpdate) {
+        const currentTranscript = recognitionRef.current?._lastTranscript;
+        if (currentTranscript && currentTranscript !== lastSentRef.current) {
+          lastSentRef.current = currentTranscript;
+          options.onTranscriptUpdate(currentTranscript);
+        }
+      }
     };
 
     recognitionRef.current = recognition;
