@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Mic, MicOff, Monitor, Code, Bug, Wand2, Send } from "lucide-react";
 import { Link } from "react-router-dom";
