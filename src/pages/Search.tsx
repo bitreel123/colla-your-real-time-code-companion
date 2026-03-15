@@ -10,6 +10,7 @@ import ScreenSharePreview from "@/components/ScreenSharePreview";
 import AnalysisCard from "@/components/AnalysisCard";
 
 export default function SearchPage() {
+  const { user, signOut } = useAuth();
   const [query, setQuery] = useState("");
   const { isSharing, stream, startSharing, stopSharing } = useScreenShare();
   const { results, loading, analyze } = useGeminiAnalysis();
