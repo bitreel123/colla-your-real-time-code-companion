@@ -90,14 +90,42 @@ export default function SearchPage() {
     }
   };
 
-  const handleScreenAnalyze = () => {
+  const [autoAnalyze, setAutoAnalyze] = useState(false);
+  const autoAnalyzeRef = useRef(false);
+
+  const handleScreenAnalyze = useCallback(() => {
     if (isSharing && stream) {
       const frame = captureScreenFrame();
       if (frame) {
-        analyze("vision", `Analyze this screen capture and identify any code issues, bugs, or improvements. ${query || ""}`, frame);
+        analyze(
+          "vision",
+          `You are analyzing a live screen capture. Look at the code visible on screen and:
+1. Identify what language/framework is being used
+2. Explain what the code does line by line
+3. Find any bugs, errors, or anti-patterns
+4. Suggest corrections with corrected code snippets
+5. Rate the code quality (1-10)
+
+${query ? `User's additional context: ${query}` : "Analyze everything you see."}`,
+          frame
+        );
       }
     }
-  };
+  }, [isSharing, stream, query, analyze]);
+
+  // Auto-analyze every 8 seconds when enabled
+  useEffect(() => {
+    autoAnalyzeRef.current = autoAnalyze;
+  }, [autoAnalyze]);
+
+  useEffect(() => {
+    if (!autoAnalyze || !isSharing || !stream) return;
+    handleScreenAnalyze(); // immediate first capture
+    const interval = setInterval(() => {
+      if (autoAnalyzeRef.current) handleScreenAnalyze();
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [autoAnalyze, isSharing, stream, handleScreenAnalyze]);
 
   const hasAnyResults =
     results.voice || results.vision || results.correction || results.assistant || results.debug;
