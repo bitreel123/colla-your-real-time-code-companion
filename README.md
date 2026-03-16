@@ -1,7 +1,8 @@
 # 🤖 COLLA — AI-Powered Developer Search Engine
 
 > **Live Demo:** [https://colla-524919266044.europe-west1.run.app/](https://colla-524919266044.europe-west1.run.app/)
-
+login details to test product - adewaleayomide619@gmail.com
+password : Richieart123
 ---
 
 ## 📸 Screenshots
