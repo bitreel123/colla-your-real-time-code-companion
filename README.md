@@ -4,6 +4,19 @@
 
 ---
 
+## 📸 Screenshots
+
+### Landing Page
+![Landing Page](public/screenshots/landing-page.png)
+
+### Search Page — AI-Powered Code Search
+![Search Page](public/screenshots/search-page.png)
+
+### Login Page — Secure Authentication
+![Login Page](public/screenshots/login-page.png)
+
+---
+
 ## 📖 Introduction
 
 **COLLA** is an AI-powered real-time developer search engine and pair programming assistant. It combines **Google Gemini API** vision and language capabilities with a modern React interface to let developers search, analyze, debug, and fix code — all in real-time using screen sharing, voice input, and conversational AI chat.
